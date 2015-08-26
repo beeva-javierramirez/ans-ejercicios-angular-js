@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html ng-app="ej12">
+<head>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.0-rc.3/angular.js"></script>
+</head>
+<body>
+  	<div ng-app="ej12" ng-controller="ej12Ctrl">
+	  <li ng-repeat="person in people">
+	    {{person.name}} {{person.surname}} 
+	  </li>
+	</div>
+	<script>		
+		angular
+			.module('ej12', [])
+			.controller('ej12Ctrl', function($scope){
+				$scope.people = [
+				    { name: 'Javier',	surname: 'Ramirez' },
+				    { name: 'Carlos',	surname: 'Diaz' },
+				    { name: 'Angel',	surname: 'Madera' },
+				    { name: 'Mario',	surname: 'Molina' }
+			  	];
+		});
+	</script>
+</body>
+</html>
