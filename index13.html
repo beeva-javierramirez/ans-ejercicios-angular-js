@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html ng-app="ej13">
+<head>
+	<meta charset="utf-8">
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">    
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap-theme.min.css">    
+	<!-- Angular -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.4.2/angular.js"></script>
+  	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ng-table/0.8.3/ng-table.min.css">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/ng-table/0.8.3/ng-table.min.js"></script>
+</head>
+<body>
+  	<div class="container-fluid">
+    <div class="row">
+      <div class="col-md-3" ng-controller="ej13Ctrl" loading-container="tableParams.settings().$loading">
+        <table ng-table="tableParams" show-filter="true" class="table table-condensed table-bordered table-striped">
+          <tr>
+          	<th>Partido</th>
+          	<th>Porcentaje</th>
+          </tr>
+          <tr ng-repeat="csv in $data | orderBy:'Partido'">
+            <td style="background-color:{{ csv.Color }};">{{ csv.Partido }}</td>
+            <td style="background-color:{{ csv.Color }};"><b>{{ csv.Porcentaje }}%</b></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+	<script>
+		var app = angular.module('ej13', ['ngTable']);
+
+		app.controller("ej13Ctrl", function($scope, $http, ngTableParams) {
+			$http.get('https://s3.eu-central-1.amazonaws.com/ciff/encuesta.csv')
+	      	.success(function (response) {
+	      		var data = CSV2JSON(response);
+			  	$scope.tableParams = new ngTableParams(
+			  	{
+			    	page: 1,          	// primera página a mostrar
+			        count: 10         	// registros por página
+			    },
+				{
+					total: data.length, // length of data
+			        getData: function ($defer, params) {
+			        	$defer.resolve(data.slice((params.page() - 1) * params.count(), params.page() * params.count()));
+			    	}
+				}
+				);
+			});
+		});
+
+		// This will parse a delimited string into an array of
+		// arrays. The default delimiter is the comma, but this
+		// can be overriden in the second argument.
+
+		function CSVToArray(strData, strDelimiter) {
+		    // Check to see if the delimiter is defined. If not,
+		    // then default to comma.
+		    strDelimiter = (strDelimiter || ",");
+		    // Create a regular expression to parse the CSV values.
+		    var objPattern = new RegExp((
+		    // Delimiters.
+		    "(\\" + strDelimiter + "|\\r?\\n|\\r|^)" +
+		    // Quoted fields.
+		    "(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|" +
+		    // Standard fields.
+		    "([^\"\\" + strDelimiter + "\\r\\n]*))"), "gi");
+		    // Create an array to hold our data. Give the array
+		    // a default empty first row.
+		    var arrData = [[]];
+		    // Create an array to hold our individual pattern
+		    // matching groups.
+		    var arrMatches = null;
+		    // Keep looping over the regular expression matches
+		    // until we can no longer find a match.
+		    while (arrMatches = objPattern.exec(strData)) {
+		        // Get the delimiter that was found.
+		        var strMatchedDelimiter = arrMatches[1];
+		        // Check to see if the given delimiter has a length
+		        // (is not the start of string) and if it matches
+		        // field delimiter. If id does not, then we know
+		        // that this delimiter is a row delimiter.
+		        if (strMatchedDelimiter.length && (strMatchedDelimiter != strDelimiter)) {
+		            // Since we have reached a new row of data,
+		            // add an empty row to our data array.
+		            arrData.push([]);
+		        }
+		        // Now that we have our delimiter out of the way,
+		        // let's check to see which kind of value we
+		        // captured (quoted or unquoted).
+		        if (arrMatches[2]) {
+		            // We found a quoted value. When we capture
+		            // this value, unescape any double quotes.
+		            var strMatchedValue = arrMatches[2].replace(
+		            new RegExp("\"\"", "g"), "\"");
+		        } else {
+		            // We found a non-quoted value.
+		            var strMatchedValue = arrMatches[3];
+		        }
+		        // Now that we have our value string, let's add
+		        // it to the data array.
+		        arrData[arrData.length - 1].push(strMatchedValue);
+		    }
+		    // Return the parsed data.
+		    return (arrData);
+		}
+
+		function CSV2JSON(csv) {
+		    var array = CSVToArray(csv);
+		    var objArray = [];
+		    for (var i = 1; i < array.length; i++) {
+		        objArray[i - 1] = {};
+		        for (var k = 0; k < array[0].length && k < array[i].length; k++) {
+		            var key = array[0][k];
+		            objArray[i - 1][key] = array[i][k]
+		        }
+		    }
+
+		    var json = JSON.stringify(objArray);
+		    var str = json.replace(/},/g, "},\r\n");
+			var obj = JSON.parse(str);
+
+			return obj;
+		}
+	</script>
+</body>
+</html>
